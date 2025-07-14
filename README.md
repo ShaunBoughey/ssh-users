@@ -4,7 +4,7 @@ This role manages SSH user accounts with role-based access control using sudo gr
 
 ## Features
 
-- **Role-based Access Control**: Three permission levels (readonly, edit, full_access)
+- **Role-based Access Control**: Ability to define groups and permissions
 - **SSH Key Management**: Automated SSH key deployment and management
 - **User Lifecycle Management**: Create, update, and remove users
 - **Safe Pruning**: Optional removal of unmanaged users with safety checks
@@ -69,8 +69,6 @@ The following groups are defined by default, but you can customize these or crea
 **Custom Groups**: Define your own groups by adding them to the `sudo_commands` variable in `group_vars/` or `host_vars/` files.
 
 ## Variable Reference
-
-### Required Variables
 
 #### `managed_users`
 List of user accounts to manage. Each user object supports:
