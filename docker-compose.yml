@@ -1,0 +1,11 @@
+services:
+  ansible-target:
+    build: .
+    container_name: ansible-test-target
+    ports:
+      - "2222:22"
+    hostname: ansible-target
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: true
+    restart: unless-stopped 

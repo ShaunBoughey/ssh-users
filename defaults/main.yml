@@ -1,0 +1,70 @@
+---
+# A list of user that this role should never touch
+untouchable_users:
+  - root
+  - ansible
+
+# A list of users to be managed on the target systems
+managed_users:
+  - username: "test1"
+    state: "present"
+    group: "full_access"
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGC5pOFM+2PSm3z2PA4A4y3gC9zJ+Jd7k8r7xW3bXy9z test1@example.com"
+
+  - username: "test2"
+    state: "present"
+    group: "edit"
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEZ/K8jBKF2vAn4NEiZ6k0r/K8d7k3j2hL+xZo9gHq8L test2@example.com"
+
+  - username: "test_readonly"
+    state: "present"
+    group: "readonly"
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJbLg+2bV8f4kY2bF2h4n8jK9gH/lK8e9bX3o2fJkL9o test_readonly@example.com"
+
+  - username: "network_monitor"
+    state: "present"
+    groups: ["readonly", "monitoring"]
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBC1pOFM+2PSm3z2PA4A4y3gC9zJ+Jd7k8r7xW3bXy9z monitor@example.com"
+
+  - username: "old_user"
+    state: "absent"
+
+# Sudo command configuration for each group
+# This makes it easy to add/remove commands and can be overridden in group_vars/host_vars
+sudo_commands:
+  readonly:
+    - "/sbin/ip route show"
+    - "/sbin/ip addr show"
+    - "/sbin/ip link show"
+    - "/sbin/iptables -L"
+    - "/sbin/iptables -S"
+    - "/bin/netstat"
+  
+  monitoring:
+    - "/usr/bin/nmap *"
+    - "/usr/sbin/traceroute *"
+    - "/bin/ping *"
+    - "/usr/bin/dig *"
+    - "/usr/bin/tcpdump"
+    - "/usr/bin/nslookup *"
+    - "/usr/bin/host *"
+    - "/usr/bin/telnet *"
+  
+  edit:
+    - "/sbin/ip route add *"
+    - "/sbin/ip route del *"
+    - "/sbin/ip addr add *"
+    - "/sbin/ip addr del *"
+    - "/sbin/iptables -A *"
+    - "/sbin/iptables -D *"
+    - "/sbin/iptables -I *"
+    - "/sbin/iptables -F *"
+    - "/sbin/iptables -X *"
+    - "/bin/systemctl restart networking"
+    - "/bin/systemctl reload networking"
+  
+  full_access:
+    - "ALL"
+
+# Password requirement for sudo (set to false for NOPASSWD)
+sudo_require_password: false

@@ -1,0 +1,73 @@
+---
+- name: "Ensure user groups are present"
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: "present"
+  loop: "{{ sudo_commands.keys() | list }}"
+
+- name: "Manage user accounts"
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    state: "{{ item.state }}"
+    groups: "{{ (item.groups | join(',')) if item.groups is defined else item.group if item.state == 'present' else omit }}"
+    shell: "/bin/bash"
+    create_home: "{{ item.state == 'present' }}"
+    remove: "{{ item.state == 'absent' }}"
+  loop: "{{ managed_users }}"
+  when: "item.username not in untouchable_users"
+
+- name: "Set up authorized keys for managed users"
+  ansible.posix.authorized_key:
+    user: "{{ item.username }}"
+    key: "{{ item.ssh_key }}"
+    state: "{{ item.state }}"
+  loop: "{{ managed_users }}"
+  when:
+    - "item.username not in untouchable_users"
+    - "item.ssh_key is defined"
+    - "item.state == 'present'"
+
+- name: "Deploy sudoers configuration"
+  ansible.builtin.template:
+    src: "sudoers.j2"
+    dest: "/etc/sudoers.d/90-ansible-managed-users"
+    owner: "root"
+    group: "root"
+    mode: "0440"
+    validate: "/usr/sbin/visudo -c -f %s"
+
+# -----------------------------------------------------------------------------
+# DANGEROUS: The following tasks will remove any non-system users
+# that are not explicitly defined in your vars file.
+# Run only by using the 'prune' tag: --tags prune
+# -----------------------------------------------------------------------------
+
+- name: "Prune | Get all user accounts from the target system"
+  ansible.builtin.getent:
+    database: passwd
+  tags: [always]
+
+- name: "Prune | Build list of users with UID >= 1000"
+  set_fact:
+    users_with_high_uid: "{{ users_with_high_uid | default([]) + [item.key] }}"
+  loop: "{{ getent_passwd | dict2items }}"
+  when: 
+    - getent_passwd is defined
+    - item.value.1 | int >= 1000
+  tags: [never, prune]
+
+- name: "Prune | Remove unmanaged users"
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: absent
+    remove: true
+  loop: >-
+    {{
+      users_with_high_uid
+      | difference(managed_users | selectattr('state', 'equalto', 'present') | map(attribute='username') | list)
+      | difference(untouchable_users)
+    }}
+  tags: [never, prune]
+  when: 
+    - getent_passwd is defined
+    - users_with_high_uid is defined

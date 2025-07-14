@@ -1,0 +1,17 @@
+# This file is managed by Ansible. Do not edit manually.
+
+{% for group, commands in sudo_commands.items() %}
+{% if group != 'full_access' %}
+# Command Aliases for {{ group }} group
+Cmnd_Alias {{ group | upper }}_COMMANDS = {{ commands | join(', ') }}
+{% endif %}
+{% endfor %}
+
+# User privilege specification
+{% for group, commands in sudo_commands.items() %}
+{% if group == 'full_access' %}
+%{{ group }} ALL=(ALL) {% if not sudo_require_password %}NOPASSWD: {% endif %}ALL
+{% else %}
+%{{ group }} ALL=(ALL) {% if not sudo_require_password %}NOPASSWD: {% endif %}{{ group | upper }}_COMMANDS
+{% endif %}
+{% endfor %}
